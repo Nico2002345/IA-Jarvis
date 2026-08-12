@@ -70,13 +70,14 @@ def run_voice_mode():
             speaker.say("Dime.")
             user_text = listener.listen_command()
             if not user_text:
+                speaker.say("No te escuché bien, di la palabra clave de nuevo cuando quieras.")
                 continue
             print(f"Tú: {user_text}")
             if user_text.lower() in EXIT_WORDS:
                 speaker.say("Hasta luego.")
                 break
             reply = brain.ask(user_text)
-            speaker.say(reply)
+            speaker.say(reply or "No tengo una respuesta para eso.")
         except KeyboardInterrupt:
             print("\nHasta luego.")
             break

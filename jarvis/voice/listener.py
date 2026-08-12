@@ -1,6 +1,10 @@
 import speech_recognition as sr
 from jarvis.config import ENERGY_THRESHOLD, MIC_DEVICE_INDEX, WAKE_WORD
 
+# "Jarvis" no es una palabra española: Google STT (es-ES) suele oírlo como
+# estas variantes fonéticas. Se aceptan todas como activación.
+WAKE_WORD_VARIANTS = {WAKE_WORD, "harvey", "harbi", "jarbis", "yarvis", "jarves", "jarvi"}
+
 
 class Listener:
     def __init__(self, language: str = "es-ES"):
@@ -9,12 +13,15 @@ class Listener:
         self.microphone = sr.Microphone(device_index=MIC_DEVICE_INDEX)
         self.language = language
         if ENERGY_THRESHOLD is not None:
-            self.recognizer.energy_threshold = ENERGY_THRESHOLD
-            self.recognizer.dynamic_energy_threshold = False
+            # El valor guardado es el nivel de ruido ambiente medido; se le da
+            # margen para que no dispare con el propio ruido de fondo.
+            self.recognizer.energy_threshold = ENERGY_THRESHOLD * 1.5
         else:
             with self.microphone as source:
                 print("Calibrando micrófono para ruido ambiente...")
                 self.recognizer.adjust_for_ambient_noise(source, duration=1)
+        # Sigue ajustándose en vivo (útil porque el usuario cambia de micrófono).
+        self.recognizer.dynamic_energy_threshold = True
 
     def _listen_once(self, timeout=None, phrase_time_limit=None) -> str:
         with self.microphone as source:
@@ -32,7 +39,7 @@ class Listener:
     def wait_for_wake_word(self) -> bool:
         print(f"Escuchando... (di '{WAKE_WORD}' para activar)")
         text = self._listen_once(timeout=None, phrase_time_limit=4)
-        return WAKE_WORD in text
+        return any(variant in text for variant in WAKE_WORD_VARIANTS)
 
     def listen_command(self, timeout=6, phrase_time_limit=12) -> str:
         print("Te escucho...")
