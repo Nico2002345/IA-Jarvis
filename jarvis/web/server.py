@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from jarvis.brain import Brain
 from jarvis.config import WEB_TOKEN
+from jarvis.tools import quick_commands
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 PORT = 8765
@@ -58,6 +59,9 @@ def index():
 @app.post("/api/chat")
 def chat(body: ChatIn, authorization: str | None = Header(default=None)):
     _check_auth(authorization)
+    quick_reply = quick_commands.handle(body.message, confirm_callback=_web_confirm)
+    if quick_reply is not None:
+        return {"reply": quick_reply}
     with _chat_lock:
         try:
             reply = brain.ask(body.message)

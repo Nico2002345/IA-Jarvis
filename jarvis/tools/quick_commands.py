@@ -1,0 +1,84 @@
+"""
+Comandos básicos que JARVIS resuelve localmente, SIN llamar a la API de Claude.
+Así siguen funcionando aunque se acaben los créditos.
+"""
+import re
+import subprocess
+import unicodedata
+from datetime import datetime
+
+from jarvis.tools import system_control as sc
+
+
+def _normalize(text: str) -> str:
+    text = text.strip().lower()
+    text = "".join(c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn")
+    return text
+
+
+# Frase/palabra clave -> acción a ejecutar cuando el usuario pide "abrir" algo
+_APP_TRIGGERS = {
+    "youtube": lambda: sc.open_path("https://youtube.com"),
+    "google": lambda: sc.open_path("https://google.com"),
+    "spotify": lambda: sc.open_application("spotify"),
+    "whatsapp": lambda: sc.open_path("https://web.whatsapp.com"),
+    "chrome": lambda: sc.open_application("chrome"),
+    "bloc de notas": lambda: sc.open_application("bloc de notas"),
+    "notepad": lambda: sc.open_application("notepad"),
+    "visual studio code": lambda: sc.open_application("visual studio code"),
+    "vscode": lambda: sc.open_application("visual studio code"),
+    "vs code": lambda: sc.open_application("visual studio code"),
+}
+
+_OPEN_VERB_RE = re.compile(r"\b(abre|abrir|abreme|abrime|inicia|iniciar|ejecuta|ejecutar)\b")
+
+_TIME_PATTERNS = ("que hora es", "que hora tienes", "dime la hora", "sabes que hora es")
+
+_SHUTDOWN_PATTERNS = (
+    "apaga el computador", "apaga la computadora", "apaga el pc", "apaga la pc",
+    "apagar el computador", "apagar la computadora", "apagar el pc", "apagar la pc",
+    "apaga windows",
+)
+
+_RESTART_PATTERNS = (
+    "reinicia el computador", "reinicia la computadora", "reinicia el pc", "reinicia la pc",
+    "reiniciar el computador", "reiniciar la computadora", "reiniciar el pc", "reiniciar la pc",
+)
+
+
+def _match_open_app(norm: str):
+    if not _OPEN_VERB_RE.search(norm):
+        return None
+    for trigger, action in _APP_TRIGGERS.items():
+        if trigger in norm:
+            return action
+    return None
+
+
+def handle(text: str, confirm_callback=None):
+    """Intenta resolver el comando localmente. Devuelve la respuesta (str) si lo manejó,
+    o None si no coincide con ningún comando básico y debe pasar a la IA.
+    confirm_callback(desc: str) -> bool, se usa para confirmar apagar/reiniciar."""
+    confirm_callback = confirm_callback or (lambda desc: True)
+    norm = _normalize(text)
+
+    if any(p in norm for p in _TIME_PATTERNS):
+        return f"Son las {datetime.now().strftime('%H:%M')}."
+
+    if any(p in norm for p in _SHUTDOWN_PATTERNS):
+        if not confirm_callback("apagar el computador"):
+            return "Apagado cancelado."
+        subprocess.Popen(["shutdown", "/s", "/t", "5"])
+        return "Apagando el computador en 5 segundos."
+
+    if any(p in norm for p in _RESTART_PATTERNS):
+        if not confirm_callback("reiniciar el computador"):
+            return "Reinicio cancelado."
+        subprocess.Popen(["shutdown", "/r", "/t", "5"])
+        return "Reiniciando el computador en 5 segundos."
+
+    action = _match_open_app(norm)
+    if action:
+        return action()
+
+    return None

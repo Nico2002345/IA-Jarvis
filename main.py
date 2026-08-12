@@ -7,6 +7,7 @@ if sys.platform == "win32":
 
 from jarvis.config import ANTHROPIC_API_KEY
 from jarvis.brain import Brain
+from jarvis.tools import quick_commands
 
 EXIT_WORDS = {"salir", "exit", "quit", "adiós", "adios", "hasta luego"}
 
@@ -38,6 +39,10 @@ def run_text_mode():
         if user_text.lower() in EXIT_WORDS:
             print("JARVIS: Hasta luego.")
             break
+        quick_reply = quick_commands.handle(user_text, confirm_callback=confirm)
+        if quick_reply is not None:
+            print(f"JARVIS: {quick_reply}\n")
+            continue
         reply = brain.ask(user_text)
         print(f"JARVIS: {reply}\n")
 
@@ -76,6 +81,10 @@ def run_voice_mode():
             if user_text.lower() in EXIT_WORDS:
                 speaker.say("Hasta luego.")
                 break
+            quick_reply = quick_commands.handle(user_text, confirm_callback=confirm)
+            if quick_reply is not None:
+                speaker.say(quick_reply)
+                continue
             reply = brain.ask(user_text)
             speaker.say(reply or "No tengo una respuesta para eso.")
         except KeyboardInterrupt:
