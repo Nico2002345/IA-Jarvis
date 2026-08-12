@@ -17,17 +17,26 @@ def _normalize(text: str) -> str:
 
 
 # Frase/palabra clave -> acción a ejecutar cuando el usuario pide "abrir" algo
+# El orden importa: se usa el primer trigger que aparezca como substring del texto,
+# por eso las frases más específicas (ej. "visual studio code") van antes que las
+# genéricas (ej. "visual studio").
 _APP_TRIGGERS = {
     "youtube": lambda: sc.open_path("https://youtube.com"),
     "google": lambda: sc.open_path("https://google.com"),
     "spotify": lambda: sc.open_application("spotify"),
-    "whatsapp": lambda: sc.open_path("https://web.whatsapp.com"),
+    "whatsapp": lambda: sc.open_whatsapp(),
     "chrome": lambda: sc.open_application("chrome"),
     "bloc de notas": lambda: sc.open_application("bloc de notas"),
     "notepad": lambda: sc.open_application("notepad"),
     "visual studio code": lambda: sc.open_application("visual studio code"),
     "vscode": lambda: sc.open_application("visual studio code"),
     "vs code": lambda: sc.open_application("visual studio code"),
+    "visual studio": lambda: sc.open_application("visual studio"),
+    "excel": lambda: sc.open_application("excel"),
+    "word": lambda: sc.open_application("word"),
+    "android studio": lambda: sc.open_application("android studio"),
+    "valorant": lambda: sc.open_application("valorant"),
+    "teams": lambda: sc.open_application("teams"),
 }
 
 _OPEN_VERB_RE = re.compile(r"\b(abre|abrir|abreme|abrime|inicia|iniciar|ejecuta|ejecutar)\b")

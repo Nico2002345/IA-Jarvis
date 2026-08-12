@@ -30,18 +30,119 @@ APP_ALIASES = {
     "vscode": "code.exe",
     "visual studio code": "code.exe",
     "code": "code.exe",
+    "visual studio": "devenv.exe",
 }
 
 
-def open_application(name: str) -> str:
-    """Abre una aplicación por nombre (usa el comando 'start' de Windows)."""
-    key = name.strip().lower()
-    target = APP_ALIASES.get(key, name)
+def _find_shortcut(query: str):
+    """Busca un acceso directo (.lnk) en el Menú Inicio cuyo nombre coincida con la consulta."""
+    query_lower = query.strip().lower()
+    search_dirs = [
+        Path(os.environ.get("ProgramData", "")) / "Microsoft/Windows/Start Menu/Programs",
+        Path(os.environ.get("APPDATA", "")) / "Microsoft/Windows/Start Menu/Programs",
+    ]
+    best = None
+    for base in search_dirs:
+        if not base.exists():
+            continue
+        try:
+            for p in base.rglob("*.lnk"):
+                name = p.stem.lower()
+                if name == query_lower:
+                    return p
+                if query_lower in name and best is None:
+                    best = p
+        except PermissionError:
+            continue
+    return best
+
+
+def _find_uwp_app(query: str):
+    """Busca una app instalada desde Microsoft Store (UWP), que no tiene acceso directo
+    tradicional en el Menú Inicio, y devuelve su AppID para poder lanzarla."""
+    query_lower = query.strip().lower()
     try:
-        subprocess.Popen(f'start "" "{target}"', shell=True)
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-Command",
+             "Get-StartApps | ForEach-Object { \"$($_.Name)|$($_.AppID)\" }"],
+            capture_output=True, text=True, timeout=15,
+        )
+    except Exception:
+        return None
+    best = None
+    for line in result.stdout.splitlines():
+        if "|" not in line:
+            continue
+        app_name, app_id = line.rsplit("|", 1)
+        app_name = app_name.strip().lower()
+        app_id = app_id.strip()
+        if not app_id:
+            continue
+        if app_name == query_lower:
+            return app_id
+        if query_lower in app_name and best is None:
+            best = app_id
+    return best
+
+
+def _launch_uwp_app(app_id: str) -> None:
+    subprocess.Popen(["explorer.exe", f"shell:AppsFolder\\{app_id}"])
+
+
+def open_application(name: str) -> str:
+    """Abre una aplicación por nombre. Prueba, en orden: alias de ejecutables conocidos,
+    accesos directos del Menú Inicio, y apps instaladas desde Microsoft Store."""
+    key = name.strip().lower()
+    if key in APP_ALIASES:
+        try:
+            subprocess.Popen(f'start "" "{APP_ALIASES[key]}"', shell=True)
+            return f"Abriendo {name}."
+        except Exception as e:
+            return f"No pude abrir {name}: {e}"
+
+    shortcut = _find_shortcut(name)
+    if shortcut:
+        try:
+            os.startfile(str(shortcut))
+            return f"Abriendo {name}."
+        except Exception as e:
+            return f"No pude abrir {name}: {e}"
+
+    app_id = _find_uwp_app(name)
+    if app_id:
+        try:
+            _launch_uwp_app(app_id)
+            return f"Abriendo {name}."
+        except Exception as e:
+            return f"No pude abrir {name}: {e}"
+
+    try:
+        subprocess.Popen(f'start "" "{name}"', shell=True)
         return f"Abriendo {name}."
     except Exception as e:
         return f"No pude abrir {name}: {e}"
+
+
+def open_whatsapp() -> str:
+    """Abre la app de escritorio de WhatsApp (acceso directo o app de Store); si no está
+    instalada, usa la versión web."""
+    shortcut = _find_shortcut("whatsapp")
+    if shortcut:
+        try:
+            os.startfile(str(shortcut))
+            return "Abriendo WhatsApp."
+        except Exception:
+            pass
+
+    app_id = _find_uwp_app("whatsapp")
+    if app_id:
+        try:
+            _launch_uwp_app(app_id)
+            return "Abriendo WhatsApp."
+        except Exception:
+            pass
+
+    return open_path("https://web.whatsapp.com")
 
 
 def open_path(path: str) -> str:
