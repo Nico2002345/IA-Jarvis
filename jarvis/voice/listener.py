@@ -1,16 +1,20 @@
 import speech_recognition as sr
-from jarvis.config import WAKE_WORD
+from jarvis.config import ENERGY_THRESHOLD, MIC_DEVICE_INDEX, WAKE_WORD
 
 
 class Listener:
     def __init__(self, language: str = "es-ES"):
         self.recognizer = sr.Recognizer()
         self.recognizer.pause_threshold = 0.8
-        self.microphone = sr.Microphone()
+        self.microphone = sr.Microphone(device_index=MIC_DEVICE_INDEX)
         self.language = language
-        with self.microphone as source:
-            print("Calibrando micrófono para ruido ambiente...")
-            self.recognizer.adjust_for_ambient_noise(source, duration=1)
+        if ENERGY_THRESHOLD is not None:
+            self.recognizer.energy_threshold = ENERGY_THRESHOLD
+            self.recognizer.dynamic_energy_threshold = False
+        else:
+            with self.microphone as source:
+                print("Calibrando micrófono para ruido ambiente...")
+                self.recognizer.adjust_for_ambient_noise(source, duration=1)
 
     def _listen_once(self, timeout=None, phrase_time_limit=None) -> str:
         with self.microphone as source:
