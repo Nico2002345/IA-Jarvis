@@ -31,33 +31,40 @@ class Brain:
         return execute_tool(tool_name, tool_input)
 
     def ask(self, user_text: str) -> str:
+        snapshot = len(self.history)
         self.history.append({"role": "user", "content": user_text})
 
-        while True:
-            response = self.client.messages.create(
-                model=CLAUDE_MODEL,
-                max_tokens=1024,
-                system=SYSTEM_PROMPT,
-                tools=TOOLS,
-                messages=self.history,
-            )
-
-            self.history.append({"role": "assistant", "content": response.content})
-
-            if response.stop_reason != "tool_use":
-                return "".join(b.text for b in response.content if b.type == "text").strip()
-
-            tool_results = []
-            for block in response.content:
-                if block.type != "tool_use":
-                    continue
-                result = self._run_tool_with_confirmation(block.name, block.input)
-                tool_results.append(
-                    {
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
-                        "content": str(result),
-                    }
+        try:
+            while True:
+                response = self.client.messages.create(
+                    model=CLAUDE_MODEL,
+                    max_tokens=1024,
+                    system=SYSTEM_PROMPT,
+                    tools=TOOLS,
+                    messages=self.history,
                 )
 
-            self.history.append({"role": "user", "content": tool_results})
+                self.history.append({"role": "assistant", "content": response.content})
+
+                if response.stop_reason != "tool_use":
+                    return "".join(b.text for b in response.content if b.type == "text").strip()
+
+                tool_results = []
+                for block in response.content:
+                    if block.type != "tool_use":
+                        continue
+                    result = self._run_tool_with_confirmation(block.name, block.input)
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": str(result),
+                        }
+                    )
+
+                self.history.append({"role": "user", "content": tool_results})
+        except Exception:
+            # Si algo falla a mitad de un turno, descartamos ese turno para no dejar
+            # el historial en un estado inconsistente que rompa todas las llamadas siguientes.
+            self.history = self.history[:snapshot]
+            raise

@@ -162,11 +162,17 @@ $("form").onsubmit = async (e) => {
       localStorage.removeItem("jarvis_token");
       return;
     }
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      addMsg(`El servidor respondió algo inesperado (HTTP ${res.status}).`, "bot");
+      return;
+    }
     addMsg(data.reply || "(sin respuesta)", "bot");
   } catch (err) {
     stopPendingWatch();
-    addMsg("Error de conexión con JARVIS.", "bot");
+    addMsg("Error de conexión con JARVIS (no se pudo contactar al servidor).", "bot");
   }
 };
 </script>

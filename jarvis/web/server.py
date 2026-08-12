@@ -59,7 +59,10 @@ def index():
 def chat(body: ChatIn, authorization: str | None = Header(default=None)):
     _check_auth(authorization)
     with _chat_lock:
-        reply = brain.ask(body.message)
+        try:
+            reply = brain.ask(body.message)
+        except Exception as e:
+            reply = f"Tuve un error interno procesando eso ({e}). Probá de nuevo."
     return {"reply": reply}
 
 
