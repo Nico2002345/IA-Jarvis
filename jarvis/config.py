@@ -8,6 +8,9 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 WAKE_WORD = os.getenv("WAKE_WORD", "jarvis").lower()
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-4-8")
 
+# Token requerido para usar JARVIS desde la interfaz web (modo teléfono)
+WEB_TOKEN = os.getenv("JARVIS_WEB_TOKEN", "")
+
 # Calibración del micrófono (generados por `python -m jarvis.voice.calibrate`)
 _mic_index = os.getenv("MIC_DEVICE_INDEX", "").strip()
 MIC_DEVICE_INDEX = int(_mic_index) if _mic_index.isdigit() else None
