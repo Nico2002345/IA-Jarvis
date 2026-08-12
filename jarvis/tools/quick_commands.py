@@ -39,7 +39,27 @@ _APP_TRIGGERS = {
     "teams": lambda: sc.open_application("teams"),
 }
 
+# Frase/palabra clave -> nombre de proceso a buscar cuando el usuario pide "cerrar" algo.
+# No incluye youtube/google: no son procesos propios, viven dentro del navegador.
+_CLOSE_TARGETS = {
+    "spotify": "spotify",
+    "whatsapp": "whatsapp",
+    "chrome": "chrome",
+    "bloc de notas": "notepad",
+    "notepad": "notepad",
+    "visual studio code": "code",
+    "vscode": "code",
+    "vs code": "code",
+    "visual studio": "devenv",
+    "excel": "excel",
+    "word": "winword",
+    "android studio": "studio",
+    "valorant": "valorant",
+    "teams": "teams",
+}
+
 _OPEN_VERB_RE = re.compile(r"\b(abre|abrir|abreme|abrime|inicia|iniciar|ejecuta|ejecutar)\b")
+_CLOSE_VERB_RE = re.compile(r"\b(cierra|cierre|cerrar|cierrame|cierralo|finaliza|finalizar)\b")
 
 _TIME_PATTERNS = ("que hora es", "que hora tienes", "dime la hora", "sabes que hora es")
 
@@ -61,6 +81,15 @@ def _match_open_app(norm: str):
     for trigger, action in _APP_TRIGGERS.items():
         if trigger in norm:
             return action
+    return None
+
+
+def _match_close_app(norm: str):
+    if not _CLOSE_VERB_RE.search(norm):
+        return None
+    for trigger, process_name in _CLOSE_TARGETS.items():
+        if trigger in norm:
+            return process_name
     return None
 
 
@@ -89,5 +118,11 @@ def handle(text: str, confirm_callback=None):
     action = _match_open_app(norm)
     if action:
         return action()
+
+    process_name = _match_close_app(norm)
+    if process_name:
+        if not confirm_callback(f"cerrar {process_name}"):
+            return "Cierre cancelado."
+        return sc.kill_process(process_name)
 
     return None
