@@ -36,6 +36,12 @@
     padding: 0 18px; border-radius: 20px; border: none; background: #2563eb; color: white;
     font-weight: 600; font-size: 15px;
   }
+  #micBtn {
+    width: 44px; height: 44px; flex: none; padding: 0; border-radius: 50%; border: none;
+    background: #1f2430; color: #e6e6e6; font-size: 18px; display: flex; align-items: center; justify-content: center;
+  }
+  #micBtn.recording { background: #dc2626; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
 
   .hidden { display: none !important; }
 
@@ -61,6 +67,7 @@
   <header>JARVIS</header>
   <div id="chat"></div>
   <form id="form">
+    <button type="button" id="micBtn">🎤</button>
     <input id="input" type="text" placeholder="Escribe un mensaje..." autocomplete="off">
     <button type="submit">Enviar</button>
   </form>
@@ -145,9 +152,22 @@ function showConfirm(desc) {
   overlay.querySelector(".no").onclick = () => respond(false);
 }
 
-$("form").onsubmit = async (e) => {
-  e.preventDefault();
-  const text = $("input").value.trim();
+async function speak(text) {
+  if (!text) return;
+  try {
+    const res = await fetch("/api/tts", {
+      method: "POST", headers: authHeaders(), body: JSON.stringify({ text }),
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.onended = () => URL.revokeObjectURL(url);
+    await audio.play();
+  } catch (e) {}
+}
+
+async function sendMessage(text) {
   if (!text) return;
   $("input").value = "";
   addMsg(text, "user");
@@ -169,12 +189,54 @@ $("form").onsubmit = async (e) => {
       addMsg(`El servidor respondió algo inesperado (HTTP ${res.status}).`, "bot");
       return;
     }
-    addMsg(data.reply || "(sin respuesta)", "bot");
+    const reply = data.reply || "(sin respuesta)";
+    addMsg(reply, "bot");
+    speak(reply);
   } catch (err) {
     stopPendingWatch();
     addMsg("Error de conexión con JARVIS (no se pudo contactar al servidor).", "bot");
   }
+}
+
+$("form").onsubmit = (e) => {
+  e.preventDefault();
+  sendMessage($("input").value.trim());
 };
+
+const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognitionImpl) {
+  const recognition = new SpeechRecognitionImpl();
+  recognition.lang = "es-ES";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  let recording = false;
+
+  recognition.onresult = (e) => {
+    const text = e.results[0][0].transcript.trim();
+    if (text) sendMessage(text);
+  };
+  recognition.onerror = () => {
+    recording = false;
+    $("micBtn").classList.remove("recording");
+  };
+  recognition.onend = () => {
+    recording = false;
+    $("micBtn").classList.remove("recording");
+  };
+
+  $("micBtn").onclick = () => {
+    if (recording) {
+      recognition.stop();
+      return;
+    }
+    recording = true;
+    $("micBtn").classList.add("recording");
+    recognition.start();
+  };
+} else {
+  $("micBtn").disabled = true;
+  $("micBtn").title = "Reconocimiento de voz no soportado en este navegador";
+}
 </script>
 </body>
 </html>

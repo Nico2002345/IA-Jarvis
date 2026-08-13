@@ -1,14 +1,17 @@
 import os
 import socket
+import tempfile
 import threading
 
+import edge_tts
 from fastapi import FastAPI, Header, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 from jarvis.brain import Brain
-from jarvis.config import WEB_TOKEN
+from jarvis.config import VOICE_NAME, VOICE_RATE, WEB_TOKEN
 from jarvis.tools import quick_commands
+from jarvis.web.tls import ensure_cert
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 PORT = 8765
@@ -51,6 +54,10 @@ class ConfirmIn(BaseModel):
     approved: bool
 
 
+class TtsIn(BaseModel):
+    text: str
+
+
 @app.get("/")
 def index():
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
@@ -68,6 +75,23 @@ def chat(body: ChatIn, authorization: str | None = Header(default=None)):
         except Exception as e:
             reply = f"Tuve un error interno procesando eso ({e}). Probá de nuevo."
     return {"reply": reply}
+
+
+@app.post("/api/tts")
+async def tts(body: TtsIn, authorization: str | None = Header(default=None)):
+    _check_auth(authorization)
+    if not body.text.strip():
+        raise HTTPException(400, "Falta texto")
+    fd, path = tempfile.mkstemp(suffix=".mp3")
+    os.close(fd)
+    try:
+        communicate = edge_tts.Communicate(body.text, VOICE_NAME, rate=VOICE_RATE)
+        await communicate.save(path)
+        with open(path, "rb") as f:
+            audio = f.read()
+    finally:
+        os.remove(path)
+    return Response(content=audio, media_type="audio/mpeg")
 
 
 @app.get("/api/pending")
@@ -107,12 +131,18 @@ def main():
         raise SystemExit(1)
 
     ip = _local_ip()
+    cert_path, key_path = ensure_cert(ip)
     print("JARVIS Web escuchando.")
     print(f"Desde tu teléfono, en la MISMA red WiFi, abre en el navegador:\n")
-    print(f"  http://{ip}:{PORT}\n")
+    print(f"  https://{ip}:{PORT}\n")
+    print("El certificado es autofirmado: la primera vez el navegador va a mostrar")
+    print("una advertencia de seguridad; elegí 'Avanzado' > 'Continuar de todas formas'.")
     print("Ingresa el token configurado en JARVIS_WEB_TOKEN para entrar.")
     print("Ctrl+C para detener.\n")
-    uvicorn.run(app, host="0.0.0.0", port=PORT, log_level="warning")
+    uvicorn.run(
+        app, host="0.0.0.0", port=PORT, log_level="warning",
+        ssl_certfile=cert_path, ssl_keyfile=key_path,
+    )
 
 
 if __name__ == "__main__":

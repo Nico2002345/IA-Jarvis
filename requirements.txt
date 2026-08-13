@@ -9,3 +9,4 @@ pyaudio>=0.2.14
 psutil>=6.0.0
 fastapi>=0.115.0
 uvicorn>=0.32.0
+cryptography>=42.0.0
