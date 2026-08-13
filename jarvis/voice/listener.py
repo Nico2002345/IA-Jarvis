@@ -42,8 +42,10 @@ class Listener:
 
     def wait_for_wake_word(self) -> bool:
         print(f"Escuchando... (di '{WAKE_WORD}' para activar)")
-        text = self._listen_once(timeout=None, phrase_time_limit=4)
-        return any(variant in text for variant in WAKE_WORD_VARIANTS)
+        while True:
+            text = self._listen_once(timeout=None, phrase_time_limit=4)
+            if any(variant in text for variant in WAKE_WORD_VARIANTS):
+                return True
 
     def listen_command(self, timeout=6, phrase_time_limit=12) -> str:
         print("Te escucho...")
