@@ -14,14 +14,18 @@ class Listener:
         self.language = language
         if ENERGY_THRESHOLD is not None:
             # El valor guardado es el nivel de ruido ambiente medido; se le da
-            # margen para que no dispare con el propio ruido de fondo.
+            # margen para que no dispare con el propio ruido de fondo. Se deja
+            # fijo (dynamic_energy_threshold=False) porque el ajuste en vivo
+            # lo iba erosionando de nuevo hacia el ruido ambiente, causando
+            # activaciones falsas constantes.
             self.recognizer.energy_threshold = ENERGY_THRESHOLD * 1.5
+            self.recognizer.dynamic_energy_threshold = False
         else:
             with self.microphone as source:
                 print("Calibrando micrófono para ruido ambiente...")
                 self.recognizer.adjust_for_ambient_noise(source, duration=1)
-        # Sigue ajustándose en vivo (útil porque el usuario cambia de micrófono).
-        self.recognizer.dynamic_energy_threshold = True
+            # Sin calibración guardada, sí conviene seguir ajustándose en vivo.
+            self.recognizer.dynamic_energy_threshold = True
 
     def _listen_once(self, timeout=None, phrase_time_limit=None) -> str:
         with self.microphone as source:

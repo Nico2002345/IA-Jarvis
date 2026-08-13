@@ -68,25 +68,32 @@ def run_voice_mode():
     speaker.say("JARVIS en línea.")
     print("JARVIS listo (modo voz). Ctrl+C para terminar.\n")
 
+    CONVERSATION_TIMEOUT = 10  # segundos de silencio antes de volver a pedir la palabra clave
+
     while True:
         try:
             if not listener.wait_for_wake_word():
                 continue
             speaker.say("Dime.")
-            user_text = listener.listen_command()
-            if not user_text:
-                speaker.say("No te escuché bien, di la palabra clave de nuevo cuando quieras.")
-                continue
-            print(f"Tú: {user_text}")
-            if user_text.lower() in EXIT_WORDS:
-                speaker.say("Hasta luego.")
-                break
-            quick_reply = quick_commands.handle(user_text, confirm_callback=confirm)
-            if quick_reply is not None:
-                speaker.say(quick_reply)
-                continue
-            reply = brain.ask(user_text)
-            speaker.say(reply or "No tengo una respuesta para eso.")
+            while True:
+                user_text = listener.listen_command(timeout=CONVERSATION_TIMEOUT)
+                if not user_text:
+                    speaker.say("Te dejo, decí 'jarvis' cuando quieras seguir hablando.")
+                    break
+                print(f"Tú: {user_text}")
+                if user_text.lower() in EXIT_WORDS:
+                    speaker.say("Hasta luego.")
+                    return
+                quick_reply = quick_commands.handle(user_text, confirm_callback=confirm)
+                if quick_reply is not None:
+                    speaker.say(quick_reply)
+                    continue
+                try:
+                    reply = brain.ask(user_text)
+                except Exception as e:
+                    print(f"Error al consultar a Claude: {e}")
+                    reply = "Tuve un error interno procesando eso. Probá de nuevo."
+                speaker.say(reply or "No tengo una respuesta para eso.")
         except KeyboardInterrupt:
             print("\nHasta luego.")
             break

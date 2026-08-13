@@ -37,6 +37,10 @@ _APP_TRIGGERS = {
     "android studio": lambda: sc.open_application("android studio"),
     "valorant": lambda: sc.open_application("valorant"),
     "teams": lambda: sc.open_application("teams"),
+    "virtualdj": lambda: sc.open_application("virtualdj"),
+    "virtual dj": lambda: sc.open_application("virtualdj"),
+    "instagram": lambda: sc.open_path("https://www.instagram.com"),
+    "facebook": lambda: sc.open_path("https://www.facebook.com"),
 }
 
 # Frase/palabra clave -> nombre de proceso a buscar cuando el usuario pide "cerrar" algo.
@@ -56,6 +60,8 @@ _CLOSE_TARGETS = {
     "android studio": "studio",
     "valorant": "valorant",
     "teams": "teams",
+    "virtualdj": "virtualdj",
+    "virtual dj": "virtualdj",
 }
 
 _OPEN_VERB_RE = re.compile(r"\b(abre|abrir|abreme|abrime|inicia|iniciar|ejecuta|ejecutar)\b")
