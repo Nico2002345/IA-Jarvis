@@ -1,5 +1,6 @@
 import os
 import subprocess
+import urllib.parse
 import webbrowser
 import psutil
 from pathlib import Path
@@ -143,6 +144,13 @@ def open_whatsapp() -> str:
             pass
 
     return open_path("https://web.whatsapp.com")
+
+
+def search_youtube(query: str) -> str:
+    """Busca algo en YouTube y abre los resultados en el navegador."""
+    url = "https://www.youtube.com/results?search_query=" + urllib.parse.quote(query)
+    webbrowser.open(url)
+    return f'Buscando "{query}" en YouTube.'
 
 
 def open_path(path: str) -> str:

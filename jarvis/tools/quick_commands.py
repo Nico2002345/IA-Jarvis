@@ -103,6 +103,28 @@ _UNMUTE_PATTERNS = (
     "pon el sonido",
 )
 
+_PLAY_VERB_RE = re.compile(r"\b(pon|ponme|poner|reproduce|reproducir|toca|tocame|tocar)\b")
+_PLAY_KEYWORD_RE = re.compile(r"\b(musica|música|cancion(?:es)?|canción(?:es)?)\b")
+_PLAY_FILLER_WORDS = {
+    "pon", "ponme", "poner", "reproduce", "reproducir", "toca", "tocame", "tocar",
+    "musica", "cancion", "canciones", "de", "un", "una", "algo",
+    "la", "el", "los", "las",
+}
+_PLAY_TRAILING_FILLER_WORDS = {"por", "favor"}
+
+
+def _extract_song_query(norm: str) -> str:
+    """Quita el verbo ('pon', 'reproduce'...) y muletillas ('musica de', 'por favor')
+    del texto normalizado, dejando solo lo que se debe buscar en YouTube."""
+    words = norm.split()
+    start = 0
+    while start < len(words) and words[start] in _PLAY_FILLER_WORDS:
+        start += 1
+    end = len(words)
+    while end > start and words[end - 1] in _PLAY_TRAILING_FILLER_WORDS:
+        end -= 1
+    return " ".join(words[start:end]).strip()
+
 
 def _match_open_app(norm: str):
     if not _OPEN_VERB_RE.search(norm):
@@ -155,6 +177,11 @@ def handle(text: str, confirm_callback=None):
 
     if any(p in norm for p in _UNMUTE_PATTERNS):
         return ic.volume_mute_toggle()
+
+    if _PLAY_VERB_RE.search(norm) and _PLAY_KEYWORD_RE.search(norm):
+        query = _extract_song_query(norm)
+        if query:
+            return sc.search_youtube(query)
 
     action = _match_open_app(norm)
     if action:
