@@ -8,6 +8,7 @@ import unicodedata
 from datetime import datetime
 
 from jarvis.tools import system_control as sc
+from jarvis.tools import input_control as ic
 
 
 def _normalize(text: str) -> str:
@@ -80,6 +81,28 @@ _RESTART_PATTERNS = (
     "reiniciar el computador", "reiniciar la computadora", "reiniciar el pc", "reiniciar la pc",
 )
 
+_VOLUME_UP_PATTERNS = (
+    "sube el volumen", "sube volumen", "subir el volumen", "subir volumen",
+    "aumenta el volumen", "aumenta volumen", "aumentar el volumen", "mas volumen",
+    "súbele al volumen", "subele al volumen", "subele el volumen",
+)
+
+_VOLUME_DOWN_PATTERNS = (
+    "baja el volumen", "baja volumen", "bajar el volumen", "bajar volumen",
+    "disminuye el volumen", "disminuye volumen", "reduce el volumen", "reduce volumen",
+    "bájale al volumen", "bajale al volumen", "bajale el volumen", "menos volumen",
+)
+
+_MUTE_PATTERNS = (
+    "silencia el volumen", "silencia el sonido", "pon en silencio", "mutea el volumen",
+    "mutea el sonido", "quita el sonido", "sin sonido",
+)
+
+_UNMUTE_PATTERNS = (
+    "quita el silencio", "activa el sonido", "quita el mute", "vuelve a poner el sonido",
+    "pon el sonido",
+)
+
 
 def _match_open_app(norm: str):
     if not _OPEN_VERB_RE.search(norm):
@@ -120,6 +143,18 @@ def handle(text: str, confirm_callback=None):
             return "Reinicio cancelado."
         subprocess.Popen(["shutdown", "/r", "/t", "5"])
         return "Reiniciando el computador en 5 segundos."
+
+    if any(p in norm for p in _VOLUME_UP_PATTERNS):
+        return ic.volume_up()
+
+    if any(p in norm for p in _VOLUME_DOWN_PATTERNS):
+        return ic.volume_down()
+
+    if any(p in norm for p in _MUTE_PATTERNS):
+        return ic.volume_mute_toggle()
+
+    if any(p in norm for p in _UNMUTE_PATTERNS):
+        return ic.volume_mute_toggle()
 
     action = _match_open_app(norm)
     if action:

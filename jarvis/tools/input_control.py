@@ -36,6 +36,26 @@ def get_screen_size() -> str:
     return f"{w}x{h}"
 
 
+def volume_up(steps: int = 5) -> str:
+    """Sube el volumen del sistema simulando la tecla de medios."""
+    for _ in range(steps):
+        pyautogui.press("volumeup")
+    return "Subiendo el volumen."
+
+
+def volume_down(steps: int = 5) -> str:
+    """Baja el volumen del sistema simulando la tecla de medios."""
+    for _ in range(steps):
+        pyautogui.press("volumedown")
+    return "Bajando el volumen."
+
+
+def volume_mute_toggle() -> str:
+    """Silencia o quita el silencio del sistema (tecla de medios, es un toggle)."""
+    pyautogui.press("volumemute")
+    return "Listo."
+
+
 def take_screenshot(save_path: str = "") -> str:
     """Toma una captura de pantalla y la guarda en disco."""
     from pathlib import Path

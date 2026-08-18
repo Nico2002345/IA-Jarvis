@@ -10,7 +10,7 @@ WAKE_WORD = os.getenv("WAKE_WORD", "jarvis").lower()
 # Voz neuronal (edge-tts) usada por Speaker. Lista de voces: `edge-tts --list-voices`.
 VOICE_NAME = os.getenv("JARVIS_VOICE", "es-AR-TomasNeural")
 VOICE_RATE = os.getenv("JARVIS_VOICE_RATE", "+0%")
-CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-4-8")
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-haiku-4-5")
 
 # Token requerido para usar JARVIS desde la interfaz web (modo teléfono)
 WEB_TOKEN = os.getenv("JARVIS_WEB_TOKEN", "")
