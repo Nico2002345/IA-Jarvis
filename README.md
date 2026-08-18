@@ -75,6 +75,26 @@ Para acceder desde fuera de casa (por ejemplo con datos móviles), instala [Tail
 en la PC y en el teléfono: te da una IP privada estable a la que podés conectarte desde cualquier lado sin
 exponer nada públicamente.
 
+## Respaldo local gratuito (sin créditos de Claude)
+
+JARVIS resuelve localmente y sin llamar a ninguna API los comandos básicos (abrir apps,
+subir/bajar volumen, apagar/reiniciar el PC, cerrar apps, decir la hora — ver `jarvis/tools/quick_commands.py`).
+
+Para todo lo demás (preguntas abiertas, tareas que requieren razonar), si la API de Claude falla por
+cualquier motivo (sin créditos, sin internet, rate limit), JARVIS cambia automáticamente a un modelo de
+IA local y gratuito corriendo en tu propia PC con [Ollama](https://ollama.com), sin que tengas que hacer nada.
+
+Instalación (una sola vez):
+
+```bash
+winget install --id Ollama.Ollama -e
+ollama pull llama3.2:3b
+```
+
+En `.env` podés elegir el modelo local con `OLLAMA_MODEL` (por defecto `llama3.2:3b`, rápido y liviano;
+`qwen2.5:7b` da mejores respuestas pero es más lento). El modelo local también puede usar las mismas
+herramientas que Claude (abrir apps, PowerShell, etc.), aunque con menor precisión.
+
 ## Notas sobre acentos/ñ en la consola
 
 Si usas `cmd.exe` clásico y ves símbolos raros en vez de tildes, corre antes:

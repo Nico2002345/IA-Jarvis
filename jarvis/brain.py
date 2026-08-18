@@ -1,5 +1,6 @@
 from anthropic import Anthropic
 from jarvis.config import ANTHROPIC_API_KEY, CLAUDE_MODEL
+from jarvis.local_brain import LocalBrain
 from jarvis.tools.registry import TOOLS, execute_tool, is_dangerous, describe_call
 
 SYSTEM_PROMPT = """Eres JARVIS, un asistente personal por voz/texto que corre en el computador del usuario.
@@ -21,6 +22,7 @@ class Brain:
         self.client = Anthropic(api_key=ANTHROPIC_API_KEY)
         self.history = []
         self.confirm_callback = confirm_callback or (lambda desc: True)
+        self.local_brain = LocalBrain(confirm_callback=confirm_callback)
 
     def _run_tool_with_confirmation(self, tool_name: str, tool_input: dict) -> str:
         if is_dangerous(tool_name):
@@ -63,8 +65,9 @@ class Brain:
                     )
 
                 self.history.append({"role": "user", "content": tool_results})
-        except Exception:
+        except Exception as e:
             # Si algo falla a mitad de un turno, descartamos ese turno para no dejar
             # el historial en un estado inconsistente que rompa todas las llamadas siguientes.
             self.history = self.history[:snapshot]
-            raise
+            print(f"Claude falló ({e}), cambiando a IA local de respaldo (Ollama)...")
+            return self.local_brain.ask(user_text)

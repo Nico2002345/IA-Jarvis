@@ -15,6 +15,11 @@ CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-haiku-4-5")
 # Token requerido para usar JARVIS desde la interfaz web (modo teléfono)
 WEB_TOKEN = os.getenv("JARVIS_WEB_TOKEN", "")
 
+# IA local gratuita (Ollama) usada como respaldo cuando falla la API de Claude
+# (sin créditos, sin internet, rate limit, etc.). No requiere API key.
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+
 # Calibración del micrófono (generados por `python -m jarvis.voice.calibrate`)
 _mic_index = os.getenv("MIC_DEVICE_INDEX", "").strip()
 MIC_DEVICE_INDEX = int(_mic_index) if _mic_index.isdigit() else None
