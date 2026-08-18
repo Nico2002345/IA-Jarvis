@@ -1,9 +1,14 @@
 import json
+import re
 import urllib.error
 import urllib.request
 
 from jarvis.config import OLLAMA_HOST, OLLAMA_MODEL
 from jarvis.tools.registry import TOOLS, execute_tool, is_dangerous, describe_call
+
+_TOOL_NAMES = {t["name"] for t in TOOLS}
+_LOOKS_LIKE_TOOL_CALL_RE = re.compile(r'^\s*\{.*"name"\s*:\s*"[a-zA-Z_]+".*\}\s*$', re.S)
+_UNQUOTED_VALUE_RE = re.compile(r':\s*~\s*([,}])')
 
 SYSTEM_PROMPT = """Eres JARVIS, un asistente personal por voz/texto que corre en el computador del usuario.
 Estás funcionando en modo local de respaldo (un modelo gratuito en esta misma PC, sin conexión a Claude),
@@ -55,6 +60,24 @@ class LocalBrain:
                 return f"Acción cancelada por el usuario: {desc}"
         return execute_tool(tool_name, tool_input)
 
+    def _try_recover_leaked_tool_call(self, text: str):
+        """Un modelo local a veces, en vez de usar el mecanismo real de tool_calls,
+        escribe la llamada a la herramienta como texto plano (JSON). Si detectamos
+        ese patrón, intentamos ejecutar la herramienta igual en lugar de mostrarle
+        al usuario el JSON crudo."""
+        if not _LOOKS_LIKE_TOOL_CALL_RE.match(text):
+            return None
+        fixed = _UNQUOTED_VALUE_RE.sub(r': "~"\1', text)
+        try:
+            call = json.loads(fixed)
+        except ValueError:
+            return None
+        name = call.get("name")
+        args = call.get("parameters") or call.get("arguments") or {}
+        if name not in _TOOL_NAMES or not isinstance(args, dict):
+            return None
+        return self._run_tool_with_confirmation(name, args)
+
     def _chat(self, messages: list) -> dict:
         payload = {
             "model": self.model,
@@ -84,6 +107,10 @@ class LocalBrain:
 
                 if not tool_calls:
                     text = (msg.get("content") or "").strip()
+                    recovered = self._try_recover_leaked_tool_call(text)
+                    if recovered is not None:
+                        self.history.append({"role": "assistant", "content": recovered})
+                        return recovered
                     self.history.append({"role": "assistant", "content": text})
                     return text or "No tengo una respuesta para eso."
 

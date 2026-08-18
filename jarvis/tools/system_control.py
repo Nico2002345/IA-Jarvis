@@ -273,3 +273,41 @@ def delete_path(path: str) -> str:
         return f"Eliminado: {path}"
     except Exception as e:
         return f"No pude eliminar {path}: {e}"
+
+
+def create_excel_chart(title: str, categories: list, values: list, chart_type: str = "bar") -> str:
+    """Crea un archivo Excel (.xlsx) con una tabla de datos y una gráfica, y lo abre.
+    chart_type: 'bar', 'line' o 'pie'."""
+    import datetime
+    from openpyxl import Workbook
+    from openpyxl.chart import BarChart, LineChart, PieChart, Reference
+
+    if not categories or not values:
+        return "Faltan datos: necesito categorías y valores para armar la gráfica."
+    if len(categories) != len(values):
+        return "La cantidad de categorías y de valores no coincide."
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Datos"
+    ws.append(["Categoría", "Valor"])
+    for cat, val in zip(categories, values):
+        ws.append([str(cat), val])
+
+    chart_classes = {"bar": BarChart, "line": LineChart, "pie": PieChart}
+    chart = chart_classes.get(chart_type, BarChart)()
+    chart.title = title
+    data = Reference(ws, min_col=2, min_row=1, max_row=len(categories) + 1)
+    cats = Reference(ws, min_col=1, min_row=2, max_row=len(categories) + 1)
+    chart.add_data(data, titles_from_data=True)
+    chart.set_categories(cats)
+    ws.add_chart(chart, "D2")
+
+    save_path = Path.home() / "Documents" / f"jarvis_grafica_{datetime.datetime.now():%Y%m%d_%H%M%S}.xlsx"
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        wb.save(save_path)
+        os.startfile(save_path)
+        return f"Gráfica creada y abierta en Excel: {save_path}"
+    except Exception as e:
+        return f"No pude crear o abrir el archivo: {e}"

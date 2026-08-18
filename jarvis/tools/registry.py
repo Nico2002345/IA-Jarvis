@@ -129,6 +129,29 @@ TOOLS = [
             "required": [],
         },
     },
+    {
+        "name": "create_excel_chart",
+        "description": (
+            "Crea un archivo de Excel con una tabla de datos y una gráfica, y lo abre. "
+            "Usar cuando el usuario pida armar una gráfica, un gráfico o un chart en Excel."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string", "description": "Título de la gráfica"},
+                "categories": {
+                    "type": "array", "items": {"type": "string"},
+                    "description": "Etiquetas del eje (ej. nombres de ciudades o personas)",
+                },
+                "values": {
+                    "type": "array", "items": {"type": "number"},
+                    "description": "Valores numéricos, uno por cada categoría",
+                },
+                "chart_type": {"type": "string", "enum": ["bar", "line", "pie"], "description": "Tipo de gráfica (por defecto 'bar')"},
+            },
+            "required": ["title", "categories", "values"],
+        },
+    },
 ]
 
 _DISPATCH = {
@@ -146,6 +169,9 @@ _DISPATCH = {
     "keyboard_hotkey": lambda i: ic.keyboard_hotkey(i["keys"]),
     "get_screen_size": lambda i: ic.get_screen_size(),
     "take_screenshot": lambda i: ic.take_screenshot(i.get("save_path", "")),
+    "create_excel_chart": lambda i: sc.create_excel_chart(
+        i["title"], i["categories"], i["values"], i.get("chart_type", "bar")
+    ),
 }
 
 
