@@ -7,6 +7,7 @@ import edge_tts
 import pygame
 
 from jarvis.config import VOICE_NAME, VOICE_RATE
+from jarvis.voice import theme
 
 _lock = threading.Lock()
 
@@ -22,11 +23,11 @@ class Speaker:
         if not text:
             return
         with _lock:
-            print(f"JARVIS: {text}")
+            theme.jarvis_line(text)
             try:
                 self._say_edge(text)
             except Exception as e:
-                print(f"edge-tts falló ({e}), usando voz local de respaldo.")
+                theme.status(f"edge-tts falló ({e}), usando voz local de respaldo.")
                 self._say_fallback(text)
 
     def _say_edge(self, text: str):

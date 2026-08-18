@@ -1,5 +1,6 @@
 import speech_recognition as sr
 from jarvis.config import ENERGY_THRESHOLD, MIC_DEVICE_INDEX, WAKE_WORD
+from jarvis.voice import theme
 
 # "Jarvis" no es una palabra española: Google STT (es-ES) suele oírlo como
 # estas variantes fonéticas. Se aceptan todas como activación.
@@ -22,7 +23,7 @@ class Listener:
             self.recognizer.dynamic_energy_threshold = False
         else:
             with self.microphone as source:
-                print("Calibrando micrófono para ruido ambiente...")
+                theme.status("Calibrando micrófono para ruido ambiente...")
                 self.recognizer.adjust_for_ambient_noise(source, duration=1)
             # Sin calibración guardada, sí conviene seguir ajustándose en vivo.
             self.recognizer.dynamic_energy_threshold = True
@@ -41,12 +42,12 @@ class Listener:
             return ""
 
     def wait_for_wake_word(self) -> bool:
-        print(f"Escuchando... (di '{WAKE_WORD}' para activar)")
+        theme.status(f"Escuchando... (di '{WAKE_WORD}' para activar)")
         while True:
             text = self._listen_once(timeout=None, phrase_time_limit=4)
             if any(variant in text for variant in WAKE_WORD_VARIANTS):
                 return True
 
     def listen_command(self, timeout=6, phrase_time_limit=12) -> str:
-        print("Te escucho...")
+        theme.status("Te escucho...")
         return self._listen_once(timeout=timeout, phrase_time_limit=phrase_time_limit)

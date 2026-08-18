@@ -48,8 +48,12 @@ def run_text_mode():
 
 
 def run_voice_mode():
+    from jarvis.voice import theme
     from jarvis.voice.listener import Listener
     from jarvis.voice.speaker import Speaker
+
+    theme.enable_ansi()
+    theme.banner()
 
     speaker = Speaker()
     listener = Listener()
@@ -66,7 +70,7 @@ def run_voice_mode():
 
     brain = Brain(confirm_callback=confirm)
     speaker.say("JARVIS en línea.")
-    print("JARVIS listo (modo voz). Ctrl+C para terminar.\n")
+    theme.status("Listo. Ctrl+C para terminar.\n")
 
     CONVERSATION_TIMEOUT = 10  # segundos de silencio antes de volver a pedir la palabra clave
 
@@ -80,7 +84,7 @@ def run_voice_mode():
                 if not user_text:
                     speaker.say("Te dejo, decí 'jarvis' cuando quieras seguir hablando.")
                     break
-                print(f"Tú: {user_text}")
+                theme.user_line(user_text)
                 if user_text.lower() in EXIT_WORDS:
                     speaker.say("Hasta luego.")
                     return
@@ -91,11 +95,11 @@ def run_voice_mode():
                 try:
                     reply = brain.ask(user_text)
                 except Exception as e:
-                    print(f"Error al consultar a Claude: {e}")
+                    theme.status(f"Error al consultar a Claude: {e}")
                     reply = "Tuve un error interno procesando eso. Probá de nuevo."
                 speaker.say(reply or "No tengo una respuesta para eso.")
         except KeyboardInterrupt:
-            print("\nHasta luego.")
+            theme.status("\nHasta luego.")
             break
 
 
